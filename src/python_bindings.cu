@@ -105,8 +105,8 @@ PYBIND11_MODULE(pgs_solver, m) {
 
     // Bind PGSSolver class
     py::class_<cuda_pgs::PGSSolver>(m, "PGSSolver")
-        .def(py::init<const std::vector<int>&, const cuda_pgs::PGSSolverConfig&>(),
-             py::arg("gpu_ids"), py::arg("config") = cuda_pgs::PGSSolverConfig())
+        .def(py::init<const cuda_pgs::PGSSolverConfig&>(),
+             py::arg("config") = cuda_pgs::PGSSolverConfig())
         .def("solve", &cuda_pgs::PGSSolver::Solve)
         .def("solve_dlpack", [](cuda_pgs::PGSSolver& self,
                                std::vector<py::capsule>& A_capsules,
