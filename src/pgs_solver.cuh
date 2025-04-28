@@ -58,7 +58,7 @@ public:
     ~SparseMatrix();
 
     // Convert to DLPack tensor
-    DLManagedTensor* ToDLPack();
+    DLManagedTensor* ToDLPack() const;
 
     // Getters
     int rows() const { return rows_; }
@@ -88,7 +88,7 @@ public:
     ~DeviceVector();
 
     // Convert to DLPack tensor
-    DLManagedTensor* ToDLPack();
+    DLManagedTensor* ToDLPack() const;
 
     // Getters/setters
     int size() const { return size_; }
