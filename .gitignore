@@ -1,0 +1,40 @@
+# Build directories
+build/
+bin/
+obj/
+CMakeFiles/
+CMakeCache.txt
+Makefile
+
+# Compiled CUDA files and object files
+*.o
+*.a
+*.so
+*.out
+*.cu.o
+
+# CUDA compiler temporary files
+*.ptx
+*.cubin
+*.fatbin
+
+# System-specific files
+*.swp
+*.bak
+*.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# Log and temp files
+*.log
+*.tmp
+*.bak
+
+# Compiled binaries
+*.exe
+*.dll
