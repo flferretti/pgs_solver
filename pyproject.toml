@@ -1,0 +1,45 @@
+[project]
+name = "pgs-solver"
+description = "A CUDA PGS Solver with Multi-GPU, sparse matrices and DLPack support."
+authors = [
+    { name = "Filippo Luca Ferretti", email = "filippoluca.ferretti@outlook.com" },
+]
+license.file = "LICENSE"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+]
+readme = "README.md"
+readme-content-type = "text/markdown"
+dependencies = [
+    "numpy>=2.2.0",
+    "jax>=0.5.0",
+    "jaxlib>=0.5.0",
+]
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "wheel",
+    "setuptools>=80",
+    "setuptools_scm[toml]>=8.0",
+    "numpy",
+    "cmake-build-extension>=0.4",
+]
+
+[tool.setuptools_scm]
+local_scheme = "dirty-tag"
+
+[tool.cibuildwheel]
+build-frontend = "build"
