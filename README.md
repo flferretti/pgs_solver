@@ -8,6 +8,7 @@ A CUDA implementation of the Projected Gauss-Seidel (PGS) method for solving con
 - Support for sparse matrices (CSR format)
 - Multi-GPU execution for large problems
 - DLPack integration for seamless interoperability with deep learning frameworks
+- Python bindings with JAX integration
 - SOR (Successive Over-Relaxation) support through relaxation parameter
 
 ## Installation
