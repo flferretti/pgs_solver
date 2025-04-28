@@ -1,7 +1,8 @@
+import jax
 import jax.numpy as jnp
 import numpy as np
 import time
-from pgs_solver import PGSSolver, PGSSolverConfig
+from pgs_solver.jax_interface import pgs_solve, pgs_solve_jittable
 import scipy.sparse as sparse
 import matplotlib.pyplot as plt
 
@@ -78,19 +79,37 @@ def solve_poisson_equation(n, f_func, jit=False):
     # Timing without JIT
     start_time = time.time()
 
-    config = PGSSolverConfig(
-        max_iterations=1000, tolerance=1e-6, relaxation=1.3, verbose=False  # SOR factor
-    )
+    if jit:
+        # Use the jittable version
+        solver_config = {
+            "max_iterations": 1000,
+            "tolerance": 1e-6,
+            "relaxation": 1.3,  # SOR factor
+            "gpu_ids": [0],
+            "verbose": False,
+        }
 
-    # Use the standard version
-    u, info = PGSSolver(gpu_ids=[0], config=config).solve(
-        A_blocks=A_jax,
-        x=x0,
-        b=b,
-        lo=lo,
-        hi=hi,
-        config=config,
-    )
+        # Compile the function (first call will be slower due to compilation)
+        solve_fn = jax.jit(
+            lambda A, b, lo, hi, x0, cfg: pgs_solve_jittable(A, b, lo, hi, x0, cfg)
+        )
+
+        # Solve the system
+        u = solve_fn(A_jax, b, lo, hi, x0, solver_config)
+
+    else:
+        # Use the standard version
+        u, info = pgs_solve(
+            A_jax,
+            b,
+            lo,
+            hi,
+            x0,
+            max_iterations=1000,
+            tolerance=1e-6,
+            relaxation=1.3,  # SOR factor
+            verbose=False,
+        )
 
     end_time = time.time()
 

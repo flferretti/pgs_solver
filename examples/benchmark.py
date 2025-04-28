@@ -63,7 +63,7 @@ def benchmark_single_gpu(n_values, density=0.01):
         config = PGSSolverConfig(max_iterations=1000, tolerance=1e-6)
 
         # Create the solver instance
-        x, info = PGSSolver(gpu_ids=[0], config=config).solve(
+        x, info = PGSSolver(config=config).solve(
             A_blocks=A_jax, b=b_jax, x=x_true, lo=lo_jax, hi=hi_jax
         )
 
@@ -127,7 +127,7 @@ def benchmark_multi_gpu(n, densities, num_gpus_list):
             config = PGSSolverConfig(max_iterations=1000, tolerance=1e-6)
 
             # Create the solver instance
-            solver = PGSSolver(gpu_ids=list(range(num_gpus)), config=config)
+            solver = PGSSolver(config=config)
 
             # Time the solution
             start_time = time.time()
@@ -193,7 +193,7 @@ def compare_with_scipy(n_values, density=0.01):
         )
 
         # Create the solver instance
-        solver = PGSSolver(gpu_ids=[0], config=config)
+        solver = PGSSolver(config=config)
 
         # Time our PGS solver
         start_time = time.time()
