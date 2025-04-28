@@ -118,7 +118,7 @@ struct PGSSolverConfig {
 // Multi-GPU PGS solver
 class PGSSolver {
 public:
-    PGSSolver(const std::vector<int>& gpu_ids, const PGSSolverConfig& config = PGSSolverConfig());
+    PGSSolver(const PGSSolverConfig& config = PGSSolverConfig());
     ~PGSSolver();
 
     // Solve Ax = b with constraints lo <= x <= hi

@@ -264,14 +264,23 @@ __global__ void computeResidualKernel(
 }
 
 // PGSSolver implementation
-PGSSolver::PGSSolver(const std::vector<int>& gpu_ids, const PGSSolverConfig& config)
+PGSSolver::PGSSolver(const PGSSolverConfig& config)
     : config_(config), iterations_(0), residual_(0.0f) {
 
-    if (gpu_ids.empty()) {
-        throw std::invalid_argument("No GPU devices specified");
+    // Get the number of GPUs
+    int num_gpus = 0;
+    cudaError_t status = cudaGetDeviceCount(&num_gpus);
+    if (status != cudaSuccess) {
+        throw std::runtime_error("Failed to get device count: " +
+                                 std::string(cudaGetErrorString(status)));
     }
 
-    for (int device_id : gpu_ids) {
+    if (num_gpus == 0) {
+        throw std::invalid_argument("No GPU devices found");
+    }
+
+    // Initialize GPU contexts for each detected GPU
+    for (int device_id = 0; device_id < num_gpus; ++device_id) {
         try {
             contexts_.push_back(std::make_unique<GPUContext>(device_id));
         } catch (const CudaError& e) {
