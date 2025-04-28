@@ -4,12 +4,13 @@ description = "A CUDA PGS Solver with Multi-GPU, sparse matrices and DLPack supp
 authors = [
     { name = "Filippo Luca Ferretti", email = "filippoluca.ferretti@outlook.com" },
 ]
-license.file = "LICENSE"
+version = "0.1.0"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -20,8 +21,7 @@ classifiers = [
     "Operating System :: Unix",
     "Operating System :: MacOS",
 ]
-readme = "README.md"
-readme-content-type = "text/markdown"
+readme = { file = "README.md", content-type = "text/markdown" }
 dependencies = [
     "numpy>=2.2.0",
     "jax>=0.5.0",
@@ -34,7 +34,6 @@ requires = [
     "wheel",
     "setuptools>=80",
     "setuptools_scm[toml]>=8.0",
-    "numpy",
     "cmake-build-extension>=0.4",
 ]
 
