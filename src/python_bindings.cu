@@ -14,7 +14,7 @@ static DLManagedTensor* CapsuleToDLPackTensor(void* capsule) {
     return static_cast<DLManagedTensor*>(capsule);
 }
 
-PYBIND11_MODULE(pgs_solver, m) {
+PYBIND11_MODULE(_pgs_solver, m) {
     m.doc() = "CUDA-based Projected Gauss-Seidel solver with multi-GPU support";
 
     // Create a wrapper class as a workaround for enum class

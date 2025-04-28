@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.18)
 project(pgs_solver LANGUAGES CXX CUDA)
 
+if(POLICY CMP0146)
+  cmake_policy(SET CMP0146 OLD)  # CMake 3.27+: use CMake FindCUDA if available.
+endif()
+
 # C++ and CUDA standards
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,12 +36,12 @@ target_link_libraries(cuda_pgs PRIVATE dlpack::dlpack)
 set_target_properties(cuda_pgs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Pybind11 Python module
-pybind11_add_module(pgs_solver src/python_bindings.cu)
-target_link_libraries(pgs_solver PRIVATE cuda_pgs)
+pybind11_add_module(_pgs_solver src/python_bindings.cu)
+target_link_libraries(_pgs_solver PRIVATE cuda_pgs)
 
 # Make pgs_solver a real Python extension
-pybind11_extension(pgs_solver)
-pybind11_strip(pgs_solver)
+pybind11_extension(_pgs_solver)
+pybind11_strip(_pgs_solver)
 
 # Installation
 include(GNUInstallDirs)
@@ -46,7 +50,5 @@ install(TARGETS cuda_pgs
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-install(TARGETS pgs_solver
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
-
-install(DIRECTORY include/ DESTINATION include)
+install(TARGETS _pgs_solver
+    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX})
