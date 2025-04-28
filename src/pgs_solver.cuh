@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 namespace cuda_pgs {
 
