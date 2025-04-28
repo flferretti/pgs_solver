@@ -36,6 +36,9 @@ add_library(cuda_pgs STATIC
     src/dlpack_integration.cu
 )
 
+# Enable position independent code (PIC) for the static library
+set_target_properties(cuda_pgs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # Pybind11 Python module
 pybind11_add_module(pgs_solver src/python_bindings.cu)
 target_link_libraries(pgs_solver PRIVATE cuda_pgs)
