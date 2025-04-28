@@ -8,33 +8,25 @@ set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 set(CUDA_NVCC_FLAGS "$ENV{CUDA_NVCC_FLAGS} -Xcompiler -fPIC")
-# Automatically set the CUDA architecture (works with CMake 3.18+)
-# if not DEFINED CMAKE_CUDA_ARCHITECTURES
-#     message(STATUS "CMake version is 3.18 or higher, setting CUDA architecture to 'auto'.")
-#     set(CMAKE_CUDA_ARCHITECTURES "auto")
-# else()
-#     message(STATUS "CMake version is lower than 3.18, using user-defined CUDA architecture: ${CMAKE_CUDA_ARCHITECTURES}.")
 
-    # Pybind11 settings
+# Pybind11 settings
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 REQUIRED)
 
 # Include DLPack
-# TODO: Make this smarter
-find_path(DLPACK_INCLUDE_DIR NAMES dlpack.h PATHS $ENV{CONDA_PREFIX}/include)
-include_directories(${DLPACK_INCLUDE_DIR})
+find_package(dlpack REQUIRED)
 
-# Include paths
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/dlpack/include
-)
+find_package(CUDA REQUIRED)
+INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 
 # Static library with CUDA code
 add_library(cuda_pgs STATIC
     src/pgs_solver.cu
     src/dlpack_integration.cu
 )
+
+target_link_libraries(cuda_pgs PRIVATE ${CUDA_cusparse_LIBRARY} )
+target_link_libraries(cuda_pgs PRIVATE dlpack::dlpack)
 
 # Enable position independent code (PIC) for the static library
 set_target_properties(cuda_pgs PROPERTIES POSITION_INDEPENDENT_CODE ON)
