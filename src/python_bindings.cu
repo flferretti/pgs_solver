@@ -17,13 +17,40 @@ static DLManagedTensor* CapsuleToDLPackTensor(void* capsule) {
 PYBIND11_MODULE(pgs_solver, m) {
     m.doc() = "CUDA-based Projected Gauss-Seidel solver with multi-GPU support";
 
-    // Bind enums
-    py::enum_<cuda_pgs::SolverStatus>(m, "SolverStatus")
-        .value("SUCCESS", cuda_pgs::SolverStatus::SUCCESS)
-        .value("MAX_ITERATIONS_REACHED", cuda_pgs::SolverStatus::MAX_ITERATIONS_REACHED)
-        .value("DIVERGED", cuda_pgs::SolverStatus::DIVERGED)
-        .value("FAILED", cuda_pgs::SolverStatus::FAILED)
-        .export_values();
+    // Create a wrapper class as a workaround for enum class
+    struct SolverStatusWrapper {
+        cuda_pgs::SolverStatus value;
+
+        // Default constructor
+        SolverStatusWrapper() : value(cuda_pgs::SolverStatus::SUCCESS) {}
+
+        // Constructor
+        SolverStatusWrapper(cuda_pgs::SolverStatus val) : value(val) {}
+
+        // Comparison operators (if needed)
+        bool operator==(const SolverStatusWrapper& rhs) const { return value == rhs.value; }
+        bool operator!=(const SolverStatusWrapper& rhs) const { return value != rhs.value; }
+
+        // Conversion operator (if needed)
+        operator cuda_pgs::SolverStatus() const { return value; }
+    };
+
+    py::class_<SolverStatusWrapper>(m, "SolverStatus")
+        .def(py::init<>())
+        .def(py::init<cuda_pgs::SolverStatus>())
+        .def_readonly("value", &SolverStatusWrapper::value)
+        .def_property_readonly_static("SUCCESS", [](py::object) {
+            return SolverStatusWrapper(cuda_pgs::SolverStatus::SUCCESS);
+        })
+        .def_property_readonly_static("MAX_ITERATIONS_REACHED", [](py::object) {
+            return SolverStatusWrapper(cuda_pgs::SolverStatus::MAX_ITERATIONS_REACHED);
+        })
+        .def_property_readonly_static("DIVERGED", [](py::object) {
+            return SolverStatusWrapper(cuda_pgs::SolverStatus::DIVERGED);
+        })
+        .def_property_readonly_static("FAILED", [](py::object) {
+            return SolverStatusWrapper(cuda_pgs::SolverStatus::FAILED);
+        });
 
     // Bind GPUContext class
     py::class_<cuda_pgs::GPUContext>(m, "GPUContext")
