@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
+#include <limits>
 
 namespace cuda_pgs {
 
