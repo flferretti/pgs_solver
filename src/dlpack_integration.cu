@@ -6,7 +6,7 @@ namespace cuda_pgs {
 
 // DLPack conversion implementations
 SparseMatrix::SparseMatrix(const GPUContext& context, DLManagedTensor* dl_tensor)
-    : context_(context) {
+    : context_(context), dlpack_owned_(true) {
 
     if (!dl_tensor || !dl_tensor->dl_tensor.data) {
         throw std::invalid_argument("Invalid DLPack tensor");

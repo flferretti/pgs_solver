@@ -50,8 +50,8 @@ class SparseMatrix {
 public:
     // Create from CSR format
     SparseMatrix(const GPUContext& context, int rows, int cols,
-                 int nnz, const int* row_ptr, const int* col_indices,
-                 const float* values);
+        int nnz, const int* row_ptr, const int* col_indices,
+        const float* values, bool dlpack_owned_ = false);
 
     // Create from DLPack tensor
     SparseMatrix(const GPUContext& context, DLManagedTensor* dl_tensor);
@@ -78,6 +78,7 @@ private:
     int* d_col_indices_;
     float* d_values_;
     cusparseSpMatDescr_t cusparse_mat_;
+    bool dlpack_owned_;
 };
 
 // Vector wrapper for device memory

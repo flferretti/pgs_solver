@@ -42,8 +42,9 @@ GPUContext::~GPUContext() {
 // SparseMatrix implementation
 SparseMatrix::SparseMatrix(
     const GPUContext& context, int rows, int cols, int nnz,
-    const int* row_ptr, const int* col_indices, const float* values)
-    : context_(context), rows_(rows), cols_(cols), nnz_(nnz) {
+    const int* row_ptr, const int* col_indices, const float* values,
+    bool dlpack_owned)
+    : context_(context), rows_(rows), cols_(cols), nnz_(nnz), dlpack_owned_(dlpack_owned) {
 
     cudaError_t cuda_status;
 
@@ -102,6 +103,10 @@ SparseMatrix::SparseMatrix(
         CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F);
 
     if (cusparse_status != CUSPARSE_STATUS_SUCCESS) {
+        // If the DLPack tensor owns the data, we don't free it here
+        if (dlpack_owned_)
+            return;
+
         cudaFree(d_values_);
         cudaFree(d_col_indices_);
         cudaFree(d_row_ptr_);
@@ -111,6 +116,12 @@ SparseMatrix::SparseMatrix(
 
 SparseMatrix::~SparseMatrix() {
     cusparseDestroySpMat(cusparse_mat_);
+
+    // If the DLPack tensor owns the data, we don't free it here
+    if (dlpack_owned_)
+        return;
+
+    // Free device memory
     cudaFree(d_values_);
     cudaFree(d_col_indices_);
     cudaFree(d_row_ptr_);
