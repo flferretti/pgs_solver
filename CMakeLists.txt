@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.18)
 project(pgs_solver LANGUAGES CXX CUDA)
 
+# Set policies for CMake to use FindCUDA if available
+if(POLICY CMP0146)
+  cmake_policy(SET CMP0146 OLD)
+endif()
+
 # C++ and CUDA standards
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CUDA_STANDARD 14)
