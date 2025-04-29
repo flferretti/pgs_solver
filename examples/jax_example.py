@@ -55,7 +55,11 @@ def solve_poisson_equation(n, f_func, jit=False):
     A_sparse = create_poisson_system(n)
 
     # Convert to JAX array for our solver
-    A_jax = jnp.array(A_sparse.toarray())
+    A_jax = (
+        jnp.array(A_sparse.indptr, dtype=jnp.int32),
+        jnp.array(A_sparse.indices, dtype=jnp.int32),
+        jnp.array(A_sparse.data, dtype=jnp.float32),
+    )
 
     # Create grid points
     h = 1.0 / (n + 1)
