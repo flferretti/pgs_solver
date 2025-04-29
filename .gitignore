@@ -38,3 +38,30 @@ Makefile
 # Compiled binaries
 *.exe
 *.dll
+
+# Executable files
+*.out
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+*.whl
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Temporary files
+*.tmp
+*.txt
+
+# Generated files
+examples/poisson_cuda_example
+examples/visualize_solution.py
+visualize_solution.py
