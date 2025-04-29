@@ -68,32 +68,35 @@ SparseMatrix::SparseMatrix(const GPUContext& context, DLManagedTensor* dl_tensor
         throw CudaError("Failed to allocate values memory");
     }
 
-    // Copy data to device
-    cuda_status = cudaMemcpyAsync(d_row_ptr_, h_row_ptr, row_ptr_size * sizeof(int),
-                                 cudaMemcpyDeviceToDevice, context_.stream());
-    if (cuda_status != cudaSuccess) {
-        cudaFree(d_values_);
-        cudaFree(d_col_indices_);
-        cudaFree(d_row_ptr_);
-        throw CudaError("Failed to copy row_ptr data");
-    }
+    // Copy data from default GPU to the current GPU in multi-GPU setup
+    if (context_.device_id() != dl_tensor->dl_tensor.device.device_id) {
+        // Copy data to device
+        cuda_status = cudaMemcpyAsync(d_row_ptr_, h_row_ptr, row_ptr_size * sizeof(int),
+                                     cudaMemcpyDeviceToDevice, context_.stream());
+        if (cuda_status != cudaSuccess) {
+            cudaFree(d_values_);
+            cudaFree(d_col_indices_);
+            cudaFree(d_row_ptr_);
+            throw CudaError("Failed to copy row_ptr data");
+        }
 
-    cuda_status = cudaMemcpyAsync(d_col_indices_, h_col_indices, nnz_ * sizeof(int),
-                                 cudaMemcpyDeviceToDevice, context_.stream());
-    if (cuda_status != cudaSuccess) {
-        cudaFree(d_values_);
-        cudaFree(d_col_indices_);
-        cudaFree(d_row_ptr_);
-        throw CudaError("Failed to copy col_indices data");
-    }
+        cuda_status = cudaMemcpyAsync(d_col_indices_, h_col_indices, nnz_ * sizeof(int),
+                                     cudaMemcpyDeviceToDevice, context_.stream());
+        if (cuda_status != cudaSuccess) {
+            cudaFree(d_values_);
+            cudaFree(d_col_indices_);
+            cudaFree(d_row_ptr_);
+            throw CudaError("Failed to copy col_indices data");
+        }
 
-    cuda_status = cudaMemcpyAsync(d_values_, h_values, nnz_ * sizeof(float),
-                                 cudaMemcpyDeviceToDevice, context_.stream());
-    if (cuda_status != cudaSuccess) {
-        cudaFree(d_values_);
-        cudaFree(d_col_indices_);
-        cudaFree(d_row_ptr_);
-        throw CudaError("Failed to copy values data");
+        cuda_status = cudaMemcpyAsync(d_values_, h_values, nnz_ * sizeof(float),
+                                     cudaMemcpyDeviceToDevice, context_.stream());
+        if (cuda_status != cudaSuccess) {
+            cudaFree(d_values_);
+            cudaFree(d_col_indices_);
+            cudaFree(d_row_ptr_);
+            throw CudaError("Failed to copy values data");
+        }
     }
 
     // Create cuSPARSE matrix descriptor
