@@ -123,10 +123,6 @@ int main() {
         cudaMemcpy(d_hi, h_hi.data(), size * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_x, h_x0.data(), size * sizeof(float), cudaMemcpyHostToDevice);
 
-        // Verify matrix on device
-        inspectMatrixKernel<<<1, 1>>>(d_row_ptr, d_col_indices, d_values, size, nnz);
-        cudaDeviceSynchronize();
-
         // Setup PGS solver
         cuda_pgs::GPUContext context(0);
         cuda_pgs::PGSSolverConfig config;
