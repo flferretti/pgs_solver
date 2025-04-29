@@ -89,8 +89,7 @@ def solve_poisson_equation(n, f_func, jit=False):
             "max_iterations": 1000,
             "tolerance": 1e-6,
             "relaxation": 1.3,  # SOR factor
-            "gpu_ids": [0],
-            "verbose": False,
+            "verbose": True,
         }
 
         # Compile the function (first call will be slower due to compilation)
