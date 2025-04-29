@@ -1,18 +1,20 @@
 import jax
 import jax.numpy as jnp
+import jax.dlpack as jdlpack
 from jax.lib import xla_client
-import numpy as np
 from . import _pgs_solver as pgs
 
-# Register JAX custom calls
-for name, fn in [
-    ("pgs_solver", pgs.PGSSolver.solve_dlpack),
-]:
-    xla_client.register_custom_call_target(name, fn, platform="gpu")
+# Register the custom call using the capsule
+xla_client.register_custom_call_target(
+    "pgs_solver", pgs.get_pgs_solver_capsule(), platform="gpu"
+)
 
 
 def pgs_solve(
-    A: jnp.ndarray | list[jnp.ndarray],
+    A: (
+        tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
+        | list[tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]]
+    ),
     b: jnp.ndarray,
     lo: jnp.ndarray,
     hi: jnp.ndarray,
@@ -22,47 +24,44 @@ def pgs_solve(
     relaxation: float = 1.0,
     verbose: bool = False,
 ) -> tuple[jnp.ndarray, dict]:
-    """Solve the constrained linear system Ax = b with bounds lo <= x <= hi using the Projected Gauss-Seidel method on CUDA GPUs.
+    """Solve the constrained linear system Ax = b with bounds lo <= x <= hi using PGS."""
+    # Create GPU context for the solver
+    context = pgs.GPUContext(0)
 
-    This function solves a bounded linear system using the Projected Gauss-Seidel algorithm,
-    with support for both single and multi-GPU execution.
-
-    Args:
-        A: The system matrix or a list of matrix
-            blocks for multi-GPU execution. For multi-GPU, provide a list of matrices
-            that will be distributed across GPUs.
-        b: The right-hand side vector.
-        lo: Lower bounds for the solution.
-        hi: Upper bounds for the solution.
-        x0: Initial guess for the solution. If None, zeros will be used.
-            Defaults to None.
-        max_iterations: Maximum number of iterations. Defaults to 1000.
-        tolerance: Convergence tolerance for the residual. Defaults to 1e-6.
-        relaxation: Relaxation factor for SOR-like behavior. Defaults to 1.0.
-        verbose: Whether to print progress information. Defaults to False.
-
-    Returns:
-        A tuple containing:
-            - x: The solution vector.
-            - info: Additional information about the solve:
-
-    Raises:
-        TypeError: If A is not a JAX array or a list of JAX arrays.
-    """
-    # Input validation
-    if isinstance(A, list):
-        # Multi-GPU mode
-        if not all(isinstance(mat, jnp.ndarray) for mat in A):
-            raise TypeError("All elements in A must be JAX arrays")
+    # Process matrices
+    if isinstance(A, tuple) and len(A) == 3:
+        # Single CSR matrix: (indptr, indices, data)
+        matrix = csr_to_pgs_dlpack(A[0], A[1], A[2], context)
+        matrices = [matrix]
+    elif isinstance(A, list):
+        # List of matrices for multi-GPU
+        matrices = []
+        for mat in A:
+            if isinstance(mat, tuple) and len(mat) == 3:
+                matrix = csr_to_pgs_dlpack(mat[0], mat[1], mat[2], context)
+                matrices.append(matrix)
+            else:
+                raise TypeError(
+                    f"Expected tuple of (indptr, indices, data), got {type(mat)}"
+                )
     else:
-        # Single GPU mode
-        if not isinstance(A, jnp.ndarray):
-            raise TypeError("A must be a JAX array or a list of JAX arrays")
-        A = [A]  # Convert to list for unified processing
+        raise TypeError(f"Expected CSR tuple or list of CSR tuples, got {type(A)}")
 
     # Initialize solution if not provided
     if x0 is None:
         x0 = jnp.zeros_like(b)
+
+    # Make sure vectors are the right dtype
+    x0 = jnp.asarray(x0, dtype=jnp.float32)
+    b = jnp.asarray(b, dtype=jnp.float32)
+    lo = jnp.asarray(lo, dtype=jnp.float32)
+    hi = jnp.asarray(hi, dtype=jnp.float32)
+
+    # Convert vectors to DLPack tensors
+    x_dlpack = jdlpack.to_dlpack(x0)
+    b_dlpack = jdlpack.to_dlpack(b)
+    lo_dlpack = jdlpack.to_dlpack(lo)
+    hi_dlpack = jdlpack.to_dlpack(hi)
 
     # Set up solver configuration
     config = pgs.PGSSolverConfig()
@@ -74,18 +73,15 @@ def pgs_solve(
     # Create solver
     solver = pgs.PGSSolver(config)
 
-    # Convert JAX arrays to DLPack format
-    A_dlpack = [jax.dlpack.to_dlpack(mat) for mat in A]
-    x_dlpack = jax.dlpack.to_dlpack(x0)
-    b_dlpack = jax.dlpack.to_dlpack(b)
-    lo_dlpack = jax.dlpack.to_dlpack(lo)
-    hi_dlpack = jax.dlpack.to_dlpack(hi)
+    # Get DLPack tensors for matrices and create an array of them
+    matrix_dlpacks = [m.__dlpack__() for m in matrices]
 
-    # Solve the system
-    status = solver.solve_dlpack(A_dlpack, x_dlpack, b_dlpack, lo_dlpack, hi_dlpack)
+    # Call the solver with DLPack tensors
+    status = solver.solve_dlpack(
+        matrix_dlpacks, x_dlpack, b_dlpack, lo_dlpack, hi_dlpack
+    )
 
-    # Convert solution back to JAX array
-    x = jax.dlpack.from_dlpack(x_dlpack)
+    # Solution is written directly to x0 via the DLPack tensor
 
     # Return solution and status information
     info = {
@@ -94,33 +90,33 @@ def pgs_solve(
         "residual": solver.residual,
     }
 
-    return x, info
+    return x0, info
 
 
-def scipy_csr_to_pgs(matrix, gpu_context):
-    """
-    Convert a scipy CSR matrix to a pgs_solver SparseMatrix.
+def csr_to_pgs_dlpack(indptr, indices, data, gpu_context=None):
+    """Convert CSR components to a pgs_solver SparseMatrix using DLPack."""
+    if gpu_context is None:
+        gpu_context = pgs.GPUContext(0)
 
-    Args:
-        matrix : Sparse matrix in CSR format.
-        gpu_context: GPU context to use for the conversion.
+    # Ensure arrays are JAX arrays with correct types
+    indptr = jnp.asarray(indptr, dtype=jnp.int32)
+    indices = jnp.asarray(indices, dtype=jnp.int32)
+    data = jnp.asarray(data, dtype=jnp.float32)
 
-    Returns:
-        pgs_matrix : Matrix in the format required by the PGS solver.
-    """
-    from scipy import sparse
+    # Convert to DLPack
+    indptr_dlpack = jdlpack.to_dlpack(indptr)
+    indices_dlpack = jdlpack.to_dlpack(indices)
+    data_dlpack = jdlpack.to_dlpack(data)
 
-    if not sparse.isspmatrix_csr(matrix):
-        matrix = sparse.csr_matrix(matrix)
-
-    return pgs.SparseMatrix(
+    # Create sparse matrix using the existing DLPack constructor wrapper
+    return pgs.SparseMatrix_from_dlpack(
         gpu_context,
-        matrix.shape[0],
-        matrix.shape[1],
-        matrix.nnz,
-        matrix.indptr.astype(np.int32),
-        matrix.indices.astype(np.int32),
-        matrix.data.astype(np.float32),
+        indptr.shape[0] - 1,  # num_rows
+        int(indices.max().item()) + 1,  # num_cols
+        data.shape[0],  # nnz
+        indptr_dlpack,
+        indices_dlpack,
+        data_dlpack,
     )
 
 
