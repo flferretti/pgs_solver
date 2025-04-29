@@ -32,8 +32,9 @@ cd pgs_solver
 2. Create a build directory and run CMake:
 ```bash
 mkdir -p build && cd build
-cmake ..
+cmake -DCMAKE_INSTALL_PREFIX=<install_prefix> ..
 make -j
+make install
 ```
 
 3. Install the Python package:
