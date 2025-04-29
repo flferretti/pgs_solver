@@ -82,11 +82,6 @@ int main() {
 
         // Print matrix statistics
         std::cout << "Matrix size: " << size << "x" << size << ", non-zeros: " << nnz << std::endl;
-        std::cout << "First 5 row pointers: ";
-        for (int i = 0; i <= 5; i++) {
-            std::cout << h_row_ptr[i] << " ";
-        }
-        std::cout << std::endl;
 
         // Create a simple RHS vector (all 1's for interior nodes, 0 for boundary)
         std::vector<float> h_b(size, 1.0f);           // RHS (f=1 for Poisson equation)
@@ -111,26 +106,26 @@ int main() {
         int *d_row_ptr, *d_col_indices;
         float *d_values, *d_b, *d_lo, *d_hi, *d_x;
 
-        CHECK_CUDA(cudaMalloc(&d_row_ptr, (size + 1) * sizeof(int)));
-        CHECK_CUDA(cudaMalloc(&d_col_indices, nnz * sizeof(int)));
-        CHECK_CUDA(cudaMalloc(&d_values, nnz * sizeof(float)));
-        CHECK_CUDA(cudaMalloc(&d_b, size * sizeof(float)));
-        CHECK_CUDA(cudaMalloc(&d_lo, size * sizeof(float)));
-        CHECK_CUDA(cudaMalloc(&d_hi, size * sizeof(float)));
-        CHECK_CUDA(cudaMalloc(&d_x, size * sizeof(float)));
+        cudaMalloc(&d_row_ptr, (size + 1) * sizeof(int));
+        cudaMalloc(&d_col_indices, nnz * sizeof(int));
+        cudaMalloc(&d_values, nnz * sizeof(float));
+        cudaMalloc(&d_b, size * sizeof(float));
+        cudaMalloc(&d_lo, size * sizeof(float));
+        cudaMalloc(&d_hi, size * sizeof(float));
+        cudaMalloc(&d_x, size * sizeof(float));
 
         // Copy data to device
-        CHECK_CUDA(cudaMemcpy(d_row_ptr, h_row_ptr.data(), (size + 1) * sizeof(int), cudaMemcpyHostToDevice));
-        CHECK_CUDA(cudaMemcpy(d_col_indices, h_col_indices.data(), nnz * sizeof(int), cudaMemcpyHostToDevice));
-        CHECK_CUDA(cudaMemcpy(d_values, h_values.data(), nnz * sizeof(float), cudaMemcpyHostToDevice));
-        CHECK_CUDA(cudaMemcpy(d_b, h_b.data(), size * sizeof(float), cudaMemcpyHostToDevice));
-        CHECK_CUDA(cudaMemcpy(d_lo, h_lo.data(), size * sizeof(float), cudaMemcpyHostToDevice));
-        CHECK_CUDA(cudaMemcpy(d_hi, h_hi.data(), size * sizeof(float), cudaMemcpyHostToDevice));
-        CHECK_CUDA(cudaMemcpy(d_x, h_x0.data(), size * sizeof(float), cudaMemcpyHostToDevice));
+        cudaMemcpy(d_row_ptr, h_row_ptr.data(), (size + 1) * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_col_indices, h_col_indices.data(), nnz * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_values, h_values.data(), nnz * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_b, h_b.data(), size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_lo, h_lo.data(), size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_hi, h_hi.data(), size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_x, h_x0.data(), size * sizeof(float), cudaMemcpyHostToDevice);
 
         // Verify matrix on device
         inspectMatrixKernel<<<1, 1>>>(d_row_ptr, d_col_indices, d_values, size, nnz);
-        CHECK_CUDA(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 
         // Setup PGS solver
         cuda_pgs::GPUContext context(0);
