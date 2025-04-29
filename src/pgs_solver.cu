@@ -225,8 +225,9 @@ void DeviceVector::CopyToHost(float* host_data) const {
     }
 }
 
-// Kernel for the PGS iteration
-__global__ void pgsIterationKernel(
+
+// Kernel for Red nodes (where i+j is even)
+__global__ void pgsRedIterationKernel(
     const int* __restrict__ row_ptr,
     const int* __restrict__ col_indices,
     const float* __restrict__ values,
@@ -235,20 +236,28 @@ __global__ void pgsIterationKernel(
     const float* __restrict__ lo,
     const float* __restrict__ hi,
     float relaxation,
-    int num_rows) {
+    int num_rows,
+    int grid_width) {  // we need the grid width to determine color
 
-    int row = blockIdx.x * blockDim.x + threadIdx.x;
-    if (row >= num_rows) return;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_rows) return;
+
+    // Calculate 2D grid coordinates from flattened index
+    int i = idx / grid_width;
+    int j = idx % grid_width;
+
+    // Only process RED nodes (i+j is even)
+    if ((i + j) % 2 != 0) return;
 
     // Compute Ax_i excluding the diagonal
     float diagonal = 0.0f;
     float ax_i = 0.0f;
 
-    for (int j = row_ptr[row]; j < row_ptr[row + 1]; ++j) {
-        int col = col_indices[j];
-        float val = values[j];
+    for (int k = row_ptr[idx]; k < row_ptr[idx + 1]; ++k) {
+        int col = col_indices[k];
+        float val = values[k];
 
-        if (col == row) {
+        if (col == idx) {
             diagonal = val;
         } else {
             ax_i += val * x[col];
@@ -258,19 +267,75 @@ __global__ void pgsIterationKernel(
     if (diagonal == 0.0f) return; // Skip rows with zero diagonal
 
     // Compute new x_i
-    float new_x = (b[row] - ax_i) / diagonal;
+    float new_x = (b[idx] - ax_i) / diagonal;
 
     // Apply relaxation
     if (relaxation != 1.0f) {
-        new_x = (1.0f - relaxation) * x[row] + relaxation * new_x;
+        new_x = (1.0f - relaxation) * x[idx] + relaxation * new_x;
     }
 
     // Project to bounds
-    if (new_x < lo[row]) new_x = lo[row];
-    if (new_x > hi[row]) new_x = hi[row];
+    if (new_x < lo[idx]) new_x = lo[idx];
+    if (new_x > hi[idx]) new_x = hi[idx];
 
     // Update solution
-    x[row] = new_x;
+    x[idx] = new_x;
+}
+
+// Kernel for Black nodes (where i+j is odd)
+__global__ void pgsBlackIterationKernel(
+    const int* __restrict__ row_ptr,
+    const int* __restrict__ col_indices,
+    const float* __restrict__ values,
+    float* __restrict__ x,
+    const float* __restrict__ b,
+    const float* __restrict__ lo,
+    const float* __restrict__ hi,
+    float relaxation,
+    int num_rows,
+    int grid_width) {
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_rows) return;
+
+    // Calculate 2D grid coordinates from flattened index
+    int i = idx / grid_width;
+    int j = idx % grid_width;
+
+    // Only process BLACK nodes (i+j is odd)
+    if ((i + j) % 2 != 1) return;
+
+    // Compute Ax_i excluding the diagonal
+    float diagonal = 0.0f;
+    float ax_i = 0.0f;
+
+    for (int k = row_ptr[idx]; k < row_ptr[idx + 1]; ++k) {
+        int col = col_indices[k];
+        float val = values[k];
+
+        if (col == idx) {
+            diagonal = val;
+        } else {
+            ax_i += val * x[col];
+        }
+    }
+
+    if (diagonal == 0.0f) return; // Skip rows with zero diagonal
+
+    // Compute new x_i
+    float new_x = (b[idx] - ax_i) / diagonal;
+
+    // Apply relaxation
+    if (relaxation != 1.0f) {
+        new_x = (1.0f - relaxation) * x[idx] + relaxation * new_x;
+    }
+
+    // Project to bounds
+    if (new_x < lo[idx]) new_x = lo[idx];
+    if (new_x > hi[idx]) new_x = hi[idx];
+
+    // Update solution
+    x[idx] = new_x;
 }
 
 // Kernel to compute residual
@@ -355,8 +420,18 @@ SolverStatus PGSSolver::Solve(
     float residual = std::numeric_limits<float>::max();
     int iter;
 
+    // Calculate grid width for 2D problems (assuming square grid)
+    int grid_width = static_cast<int>(std::sqrt(num_rows));
+
+    // For non-square grids, check if we need to adjust
+    if (grid_width * grid_width != num_rows) {
+        // This is not a square grid - try to determine width from matrix structure
+        // For now, default to √n which should work for most cases
+        std::cerr << "Warning: Non-square grid detected, assuming width = sqrt(n)" << std::endl;
+    }
+
     for (iter = 0; iter < config_.max_iterations; ++iter) {
-        // Launch PGS iteration kernel on each GPU
+        // Launch RED iteration first
         for (size_t i = 0; i < contexts_.size(); ++i) {
             const GPUContext& context = *contexts_[i];
             const SparseMatrix* A = A_blocks[i];
@@ -364,11 +439,11 @@ SolverStatus PGSSolver::Solve(
             // Set device
             cudaSetDevice(context.device_id());
 
-            // Launch kernel
+            // Launch RED kernel
             int block_size = 256;
             int grid_size = (num_rows + block_size - 1) / block_size;
 
-            pgsIterationKernel<<<grid_size, block_size, 0, context.stream()>>>(
+            pgsRedIterationKernel<<<grid_size, block_size, 0, context.stream()>>>(
                 A->row_ptr(),
                 A->col_indices(),
                 A->values(),
@@ -377,18 +452,58 @@ SolverStatus PGSSolver::Solve(
                 lo->data(),
                 hi->data(),
                 config_.relaxation,
-                num_rows);
+                num_rows,
+                grid_width);
 
             // Check for kernel launch errors
             cudaError_t cuda_status = cudaGetLastError();
             if (cuda_status != cudaSuccess) {
                 delete[] h_residual_vec;
-                throw CudaError("PGS kernel launch failed: " +
+                throw CudaError("PGS RED kernel launch failed: " +
                                  std::string(cudaGetErrorString(cuda_status)));
             }
         }
 
-        // Synchronize all GPUs
+        // Synchronize after RED iteration
+        for (const auto& context : contexts_) {
+            cudaSetDevice(context->device_id());
+            cudaStreamSynchronize(context->stream());
+        }
+
+        // Launch BLACK iteration
+        for (size_t i = 0; i < contexts_.size(); ++i) {
+            const GPUContext& context = *contexts_[i];
+            const SparseMatrix* A = A_blocks[i];
+
+            // Set device
+            cudaSetDevice(context.device_id());
+
+            // Launch BLACK kernel
+            int block_size = 256;
+            int grid_size = (num_rows + block_size - 1) / block_size;
+
+            pgsBlackIterationKernel<<<grid_size, block_size, 0, context.stream()>>>(
+                A->row_ptr(),
+                A->col_indices(),
+                A->values(),
+                x->data(),
+                b->data(),
+                lo->data(),
+                hi->data(),
+                config_.relaxation,
+                num_rows,
+                grid_width);
+
+            // Check for kernel launch errors
+            cudaError_t cuda_status = cudaGetLastError();
+            if (cuda_status != cudaSuccess) {
+                delete[] h_residual_vec;
+                throw CudaError("PGS BLACK kernel launch failed: " +
+                                 std::string(cudaGetErrorString(cuda_status)));
+            }
+        }
+
+        // Synchronize after BLACK iteration
         for (const auto& context : contexts_) {
             cudaSetDevice(context->device_id());
             cudaStreamSynchronize(context->stream());
@@ -414,8 +529,20 @@ SolverStatus PGSSolver::Solve(
                 residual_vec->data(),
                 num_rows);
 
+            cudaError_t cuda_status = cudaGetLastError();
+
+            if (cuda_status != cudaSuccess) {
+                delete[] h_residual_vec;
+                throw CudaError("Residual kernel launch failed: " +
+                                std::string(cudaGetErrorString(cuda_status)));
+            }
+
+            // Make sure residual calculation completes before we copy
+            cudaDeviceSynchronize();
+
             // Copy residual vector to host
             residual_vec->CopyToHost(h_residual_vec);
+            cudaSetDevice(context.device_id());
             cudaStreamSynchronize(context.stream());
 
             // Compute L2 norm of residual
