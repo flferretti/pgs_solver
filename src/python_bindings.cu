@@ -321,8 +321,17 @@ PYBIND11_MODULE(_pgs_solver, m) {
             DLManagedTensor* hi_tensor = CapsuleToDLPackTensor(hi_capsule.get_pointer());
 
             // Call the DLPack-based solver
-            return self.SolveDLPack(A_tensors.data(), A_tensors.size(),
-                                   x_tensor, b_tensor, lo_tensor, hi_tensor);
+            cuda_pgs::SolverStatus status = self.SolveDLPack(
+                A_tensors.data(),
+                A_tensors.size(),
+                x_tensor,
+                b_tensor,
+                lo_tensor,
+                hi_tensor
+            );
+
+            // Wrap the enum in the wrapper class before returning
+            return SolverStatusWrapper(status);
         })
         .def_property_readonly("iterations", &cuda_pgs::PGSSolver::iterations)
         .def_property_readonly("residual", &cuda_pgs::PGSSolver::residual);
