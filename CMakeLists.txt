@@ -1,54 +1,55 @@
 cmake_minimum_required(VERSION 3.18)
 project(pgs_solver LANGUAGES CXX CUDA)
 
-if(POLICY CMP0146)
-  cmake_policy(SET CMP0146 OLD)  # CMake 3.27+: use CMake FindCUDA if available.
-endif()
-
 # C++ and CUDA standards
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
-set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CUDA_NVCC_FLAGS "$ENV{CUDA_NVCC_FLAGS} -Xcompiler -fPIC")
+# Build options
+option(PGS_BUILD_EXAMPLES "Build example applications" ON)
+option(PGS_BUILD_PYTHON "Build Python bindings" ON)
 
-# Pybind11 settings
-set(PYBIND11_FINDPYTHON ON)
-find_package(pybind11 REQUIRED)
-
-# Include DLPack
+# Include directories
+include_directories(src)
 find_package(dlpack REQUIRED)
 
+# Find CUDA and cuSPARSE
 find_package(CUDA REQUIRED)
-INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+include_directories(${CUDA_INCLUDE_DIRS})
 
-# Static library with CUDA code
-add_library(cuda_pgs STATIC
+# Main library
+add_library(pgs_solver SHARED
     src/pgs_solver.cu
     src/dlpack_integration.cu
 )
+target_link_libraries(pgs_solver
+    ${CUDA_LIBRARIES}
+    ${CUDA_cusparse_LIBRARY}
+    dlpack::dlpack
+)
 
-target_link_libraries(cuda_pgs PRIVATE ${CUDA_cusparse_LIBRARY} )
-target_link_libraries(cuda_pgs PRIVATE dlpack::dlpack)
+# Examples
+if(PGS_BUILD_EXAMPLES)
+    # Poisson equation solver example
+    add_executable(poisson_cuda_example examples/poisson_cuda_example.cu)
+    target_link_libraries(poisson_cuda_example
+        pgs_solver
+        ${CUDA_LIBRARIES}
+        ${CUDA_cusparse_LIBRARY}
+    )
+endif()
 
-# Enable position independent code (PIC) for the static library
-set_target_properties(cuda_pgs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Python bindings
+if(PGS_BUILD_PYTHON)
+    # Python bindings configuration would go here
+    # This requires finding pybind11 and setting up the Python module
+endif()
 
-# Pybind11 Python module
-pybind11_add_module(_pgs_solver src/python_bindings.cu)
-target_link_libraries(_pgs_solver PRIVATE cuda_pgs)
+# Installation rules
+install(TARGETS pgs_solver
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin)
 
-# Make pgs_solver a real Python extension
-pybind11_extension(_pgs_solver)
-pybind11_strip(_pgs_solver)
-
-# Installation
-include(GNUInstallDirs)
-
-install(TARGETS cuda_pgs
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-install(TARGETS _pgs_solver
-    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES src/pgs_solver.cuh DESTINATION include/pgs_solver)
