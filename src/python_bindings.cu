@@ -208,7 +208,8 @@ PYBIND11_MODULE(_pgs_solver, m) {
                 nnz,
                 static_cast<int*>(indptr_tensor->dl_tensor.data),
                 static_cast<int*>(indices_tensor->dl_tensor.data),
-                static_cast<float*>(data_tensor->dl_tensor.data)
+                static_cast<float*>(data_tensor->dl_tensor.data),
+                true  // dlpack_owned_ = true
             );
         });
 
@@ -264,7 +265,8 @@ PYBIND11_MODULE(_pgs_solver, m) {
         })
         .def_property_readonly("rows", &cuda_pgs::SparseMatrix::rows)
         .def_property_readonly("cols", &cuda_pgs::SparseMatrix::cols)
-        .def_property_readonly("nnz", &cuda_pgs::SparseMatrix::nnz);
+        .def_property_readonly("nnz", &cuda_pgs::SparseMatrix::nnz)
+        .def_property_readonly("dlpack_owned", &cuda_pgs::SparseMatrix::dlpack_owned);
 
     // Bind DeviceVector class
     py::class_<cuda_pgs::DeviceVector>(m, "DeviceVector")

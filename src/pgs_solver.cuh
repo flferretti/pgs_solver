@@ -51,7 +51,7 @@ public:
     // Create from CSR format
     SparseMatrix(const GPUContext& context, int rows, int cols,
         int nnz, const int* row_ptr, const int* col_indices,
-        const float* values, bool dlpack_owned_ = false);
+        const float* values, bool dlpack_owned = false);
 
     // Create from DLPack tensor
     SparseMatrix(const GPUContext& context, DLManagedTensor* dl_tensor);
@@ -68,6 +68,7 @@ public:
     const int* row_ptr() const { return d_row_ptr_; }
     const int* col_indices() const { return d_col_indices_; }
     const float* values() const { return d_values_; }
+    bool dlpack_owned() const { return dlpack_owned_; }
 
 private:
     const GPUContext& context_;
