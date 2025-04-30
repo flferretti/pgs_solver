@@ -332,8 +332,11 @@ PYBIND11_MODULE(_pgs_solver, m) {
                 hi_tensor
             );
 
+            // Extract residual from x_tensor's metadata
+            float residual = static_cast<float>(x_tensor->dl_tensor.byte_offset);
+
             // Wrap the enum in the wrapper class before returning
-            return SolverStatusWrapper(status);
+            return py::make_tuple(SolverStatusWrapper(status), residual);
         })
         .def_property_readonly("iterations", &cuda_pgs::PGSSolver::iterations)
         .def_property_readonly("residual", &cuda_pgs::PGSSolver::residual);

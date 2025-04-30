@@ -81,7 +81,7 @@ def pgs_solve(
     matrix_dlpacks = [m.__dlpack__() for m in matrices]
 
     # Call the solver with DLPack tensors
-    status = solver.solve_dlpack(
+    status, residual = solver.solve_dlpack(
         matrix_dlpacks, x_dlpack, b_dlpack, lo_dlpack, hi_dlpack
     )
 
@@ -91,7 +91,7 @@ def pgs_solve(
     info = {
         "status": status,
         "iterations": solver.iterations,
-        "residual": solver.residual,
+        "residual": residual,
     }
 
     return x0, info
