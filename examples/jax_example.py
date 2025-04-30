@@ -227,8 +227,9 @@ def main():
     u_numerical = solve_poisson_equation(n, source_term)
     visualize_solution(n, u_numerical)
 
+    # TODO: Enable JIT compilation
     # Compare JIT performance
-    compare_jit_performance()
+    # compare_jit_performance()
 
 
 if __name__ == "__main__":
