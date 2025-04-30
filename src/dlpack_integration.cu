@@ -221,21 +221,24 @@ DeviceVector::DeviceVector(const GPUContext& context, DLManagedTensor* dl_tensor
         throw std::invalid_argument("DeviceVector only supports float32 data type");
     }
 
-    // Allocate memory
-    cudaError_t cuda_status = cudaMalloc(&d_data_, size_ * sizeof(float));
-    if (cuda_status != cudaSuccess) {
-        throw CudaError("Failed to allocate device vector memory");
-    }
+    // // Allocate memory
+    // cudaError_t cuda_status = cudaMalloc(&d_data_, size_ * sizeof(float));
+    // if (cuda_status != cudaSuccess) {
+    //     throw CudaError("Failed to allocate device vector memory");
+    // }
 
-    // Copy data from the DLPack tensor
-    cuda_status = cudaMemcpyAsync(
-        d_data_, dl_tensor->dl_tensor.data, size_ * sizeof(float),
-        cudaMemcpyDeviceToDevice, context_.stream());
+    // // Copy data from the DLPack tensor
+    // cuda_status = cudaMemcpyAsync(
+    //     d_data_, dl_tensor->dl_tensor.data, size_ * sizeof(float),
+    //     cudaMemcpyDeviceToDevice, context_.stream());
 
-    if (cuda_status != cudaSuccess) {
-        cudaFree(d_data_);
-        throw CudaError("Failed to copy data from DLPack tensor");
-    }
+    // if (cuda_status != cudaSuccess) {
+    //     cudaFree(d_data_);
+    //     throw CudaError("Failed to copy data from DLPack tensor");
+    // }
+
+    // Directly use the data pointer from the DLPack tensor
+    d_data_ = static_cast<float*>(dl_tensor->dl_tensor.data);
 
     // Create cuSPARSE vector descriptor
     cusparseStatus_t cusparse_status = cusparseCreateDnVec(
@@ -252,7 +255,7 @@ DLManagedTensor* DeviceVector::ToDLPack() const {
     DLManagedTensor* dl_tensor = new DLManagedTensor();
 
     // Set up the DLTensor
-    dl_tensor->dl_tensor.data = nullptr;  // Will set later
+    dl_tensor->dl_tensor.data = d_data_;  // Directly use the device pointer
     dl_tensor->dl_tensor.ndim = 1;
     dl_tensor->dl_tensor.shape = new int64_t[1];
     dl_tensor->dl_tensor.shape[0] = size_;
@@ -268,26 +271,26 @@ DLManagedTensor* DeviceVector::ToDLPack() const {
     dl_tensor->dl_tensor.dtype.bits = 32;
     dl_tensor->dl_tensor.dtype.lanes = 1;
 
-    // Allocate memory for the data (on host for transfer)
-    float* h_data = new float[size_];
+    // // Allocate memory for the data (on host for transfer)
+    // float* h_data = new float[size_];
 
-    // Copy the data from device to host
-    cudaError_t cuda_status = cudaMemcpyAsync(
-        h_data, d_data_, size_ * sizeof(float),
-        cudaMemcpyDeviceToHost, context_.stream());
+    // // Copy the data from device to host
+    // cudaError_t cuda_status = cudaMemcpyAsync(
+    //     h_data, d_data_, size_ * sizeof(float),
+    //     cudaMemcpyDeviceToHost, context_.stream());
 
-    if (cuda_status != cudaSuccess) {
-        delete[] h_data;
-        delete[] dl_tensor->dl_tensor.shape;
-        delete dl_tensor;
-        throw CudaError("Failed to copy data from device to host");
-    }
+    // if (cuda_status != cudaSuccess) {
+    //     delete[] h_data;
+    //     delete[] dl_tensor->dl_tensor.shape;
+    //     delete dl_tensor;
+    //     throw CudaError("Failed to copy data from device to host");
+    // }
 
-    // Synchronize to ensure the copy is complete
-    cudaStreamSynchronize(context_.stream());
+    // // Synchronize to ensure the copy is complete
+    // cudaStreamSynchronize(context_.stream());
 
-    // Set the data pointer
-    dl_tensor->dl_tensor.data = h_data;
+    // // Set the data pointer
+    // dl_tensor->dl_tensor.data = h_data;
 
     // Set up the deleter
     dl_tensor->deleter = DLPackDeleter;
@@ -333,8 +336,8 @@ SolverStatus PGSSolver::SolveDLPack(
     // Call the solver
     SolverStatus status = Solve(A_ptrs, x.get(), b.get(), lo.get(), hi.get());
 
-    // Update the x_tensor with the solution
-    // This happens automatically since we're working on the same memory
+    // Synchronize the CUDA stream to ensure updates are visible
+    cudaStreamSynchronize(contexts_[0]->stream());
 
     return status;
 }
