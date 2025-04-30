@@ -71,6 +71,6 @@ if(PGS_BUILD_PYTHON)
 
     # Install the Python extension module
     install(TARGETS _pgs_solver
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/pgs_solver
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}
     )
 endif()
