@@ -111,7 +111,7 @@ def solve_poisson_equation(n, f_func, jit=False):
             max_iterations=1000,
             tolerance=1e-6,
             relaxation=1.3,  # SOR factor
-            verbose=False,
+            verbose=True,
         )
 
     end_time = time.time()
