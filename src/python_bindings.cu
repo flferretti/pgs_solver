@@ -316,7 +316,15 @@ PYBIND11_MODULE(_pgs_solver, m) {
     py::class_<cuda_pgs::PGSSolver>(m, "PGSSolver")
         .def(py::init<const cuda_pgs::PGSSolverConfig&>(),
              py::arg("config") = cuda_pgs::PGSSolverConfig())
-        .def("solve", &cuda_pgs::PGSSolver::Solve)
+        .def("solve", [](cuda_pgs::PGSSolver& self,
+                        const std::vector<cuda_pgs::SparseMatrix*>& A_blocks,
+                        cuda_pgs::DeviceVector* x,
+                        const cuda_pgs::DeviceVector* b,
+                        const cuda_pgs::DeviceVector* lo,
+                        const cuda_pgs::DeviceVector* hi) {
+            cuda_pgs::SolverStatus status = self.Solve(A_blocks, x, b, lo, hi);
+            return SolverStatusWrapper(status);
+        })
         .def("solve_dlpack", [](cuda_pgs::PGSSolver& self,
                                std::vector<py::capsule>& A_capsules,
                                py::capsule x_capsule,
