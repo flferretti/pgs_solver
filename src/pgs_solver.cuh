@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cuda_runtime.h>
-#include <cusparse.h>
+#include "gpu_compat.h"
 #include <dlpack/dlpack.h>
 #include <vector>
 #include <memory>

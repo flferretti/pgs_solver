@@ -1,10 +1,13 @@
-# CUDA PGS Solver
+# GPU PGS Solver
 
-A CUDA implementation of the Projected Gauss-Seidel (PGS) method for solving constrained linear systems with support for sparse matrices and multi-GPU execution.
+A GPU-accelerated implementation of the Projected Gauss-Seidel (PGS) method for solving constrained linear systems with support for sparse matrices and multi-GPU execution.
+
+Supports both **NVIDIA CUDA** and **AMD ROCm/HIP** backends.
 
 ## Features
 
-- Fast CUDA implementation of the Projected Gauss-Seidel method
+- Fast GPU implementation of the Projected Gauss-Seidel method
+- **Dual backend support**: NVIDIA CUDA and AMD ROCm/HIP (experimental)
 - Support for sparse matrices (CSR format)
 - Multi-GPU execution for large problems
 - DLPack integration for seamless interoperability with deep learning frameworks
@@ -15,13 +18,26 @@ A CUDA implementation of the Projected Gauss-Seidel (PGS) method for solving con
 
 ### Prerequisites
 
+**For NVIDIA GPUs:**
 - CUDA Toolkit 11.0 or later
-- CMake 3.10 or later
+- CMake 3.18 or later
 - A C++14 compatible compiler
-- Python 3.7 or later (for Python bindings)
+- Python 3.10 or later (for Python bindings)
 - JAX (for JAX integration)
 
+**For AMD GPUs (Experimental):**
+- ROCm 5.0 or later with HIP
+- rocSPARSE library
+- CMake 3.18 or later
+- A C++14 compatible compiler (hipcc)
+- Python 3.10 or later (for Python bindings)
+- JAX (for JAX integration)
+
+See [docs/ROCM.md](docs/ROCM.md) for detailed ROCm setup instructions.
+
 ### Building from Source
+
+#### CUDA Backend (Default)
 
 1. Clone the repository:
 ```bash
@@ -36,6 +52,32 @@ cmake -DCMAKE_INSTALL_PREFIX=<install_prefix> ..
 make -j
 make install
 ```
+
+3. Install the Python package:
+```bash
+pip install -e .
+```
+
+#### ROCm Backend (Experimental)
+
+1. Build with ROCm support:
+```bash
+mkdir -p build && cd build
+cmake -DPGS_USE_ROCM=ON \
+      -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc \
+      -DCMAKE_INSTALL_PREFIX=<install_prefix> \
+      ..
+make -j
+make install
+```
+
+2. Install the Python package:
+```bash
+export PGS_USE_ROCM=1
+pip install -e .
+```
+
+See [docs/ROCM.md](docs/ROCM.md) for more details on ROCm support.
 
 3. Install the Python package:
 ```bash
