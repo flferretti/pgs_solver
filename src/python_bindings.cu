@@ -284,7 +284,12 @@ PYBIND11_MODULE(_pgs_solver, m) {
             DLManagedTensor* dl_tensor = CapsuleToDLPackTensor(capsule.get_pointer());
             return new cuda_pgs::DeviceVector(context, dl_tensor);
         })
-        .def("copy_from_host", &cuda_pgs::DeviceVector::CopyFromHost)
+        .def("copy_from_host", [](cuda_pgs::DeviceVector& self, py::array_t<float> array) {
+            if (array.size() != self.size()) {
+                throw std::runtime_error("Array size mismatch");
+            }
+            self.CopyFromHost(array.data());
+        })
         .def("copy_to_host", [](const cuda_pgs::DeviceVector& self, py::array_t<float> array) {
             if (array.size() != self.size()) {
                 throw std::runtime_error("Array size mismatch");
