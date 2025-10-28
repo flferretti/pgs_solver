@@ -290,15 +290,17 @@ PYBIND11_MODULE(_pgs_solver, m) {
 
     // Bind PGSSolverConfig struct
     py::class_<cuda_pgs::PGSSolverConfig>(m, "PGSSolverConfig")
-    .def(py::init<int, float, float, bool>(),
+    .def(py::init<int, float, float, bool, int>(),
          py::arg("max_iterations") = 1000,
          py::arg("tolerance") = 1e-6f,
          py::arg("relaxation") = 1.0f,
-         py::arg("verbose") = false)
+         py::arg("verbose") = false,
+         py::arg("check_frequency") = 10)
     .def_readwrite("max_iterations", &cuda_pgs::PGSSolverConfig::max_iterations)
     .def_readwrite("tolerance", &cuda_pgs::PGSSolverConfig::tolerance)
     .def_readwrite("relaxation", &cuda_pgs::PGSSolverConfig::relaxation)
-    .def_readwrite("verbose", &cuda_pgs::PGSSolverConfig::verbose);
+    .def_readwrite("verbose", &cuda_pgs::PGSSolverConfig::verbose)
+    .def_readwrite("check_frequency", &cuda_pgs::PGSSolverConfig::check_frequency);
 
     // Bind PGSSolver class
     py::class_<cuda_pgs::PGSSolver>(m, "PGSSolver")

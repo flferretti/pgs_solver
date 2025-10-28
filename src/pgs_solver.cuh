@@ -114,6 +114,7 @@ struct PGSSolverConfig {
     float tolerance = 1e-6f;
     float relaxation = 1.0f;
     bool verbose = false;
+    int check_frequency = 10;  // Check convergence every N iterations
 };
 
 // Multi-GPU PGS solver

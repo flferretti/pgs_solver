@@ -509,8 +509,8 @@ SolverStatus PGSSolver::Solve(
             cudaStreamSynchronize(context->stream());
         }
 
-        // Check convergence every few iterations to avoid overhead
-        if (iter % 10 == 0 || iter == config_.max_iterations - 1) {
+        // Check convergence based on configured frequency
+        if (iter % config_.check_frequency == 0 || iter == config_.max_iterations - 1) {
             // Reuse first GPU for residual computation
             const GPUContext& context = *contexts_[0];
             const SparseMatrix* A = A_blocks[0];

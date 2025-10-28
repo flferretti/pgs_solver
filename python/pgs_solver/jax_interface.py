@@ -26,6 +26,7 @@ def pgs_solve(
     max_iterations: int = 1000,
     tolerance: float = 1e-6,
     relaxation: float = 1.0,
+    check_frequency: int = 10,
     verbose: bool = False,
 ) -> tuple[jnp.ndarray, dict]:
     """Solve the constrained linear system Ax = b with bounds lo <= x <= hi using PGS."""
@@ -72,6 +73,7 @@ def pgs_solve(
     config.max_iterations = max_iterations
     config.tolerance = tolerance
     config.relaxation = relaxation
+    config.check_frequency = check_frequency
     config.verbose = verbose
 
     # Create solver
