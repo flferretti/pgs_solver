@@ -234,7 +234,12 @@ PYBIND11_MODULE(_pgs_solver, m) {
     py::class_<SolverStatusWrapper>(m, "SolverStatus")
         .def(py::init<>())
         .def(py::init<cuda_pgs::SolverStatus>())
-        .def_readonly("value", &SolverStatusWrapper::value)
+        .def_property_readonly("value", [](const SolverStatusWrapper& self) {
+            return static_cast<int>(self.value);
+        })
+        .def("__int__", [](const SolverStatusWrapper& self) {
+            return static_cast<int>(self.value);
+        })
         .def_property_readonly_static("SUCCESS", [](py::object) {
             return SolverStatusWrapper(cuda_pgs::SolverStatus::SUCCESS);
         })

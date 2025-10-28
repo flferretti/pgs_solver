@@ -91,7 +91,7 @@ def pgs_solve(
 
     # Return solution and status information
     info = {
-        "status": status,
+        "status": int(status.value) if hasattr(status,
         "iterations": solver.iterations,
         "residual": residual,
     }
