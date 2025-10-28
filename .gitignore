@@ -65,3 +65,6 @@ __pycache__/
 examples/poisson_cuda_example
 examples/visualize_solution.py
 visualize_solution.py
+
+# Pixi environments
+.pixi/*

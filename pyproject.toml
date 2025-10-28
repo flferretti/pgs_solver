@@ -33,7 +33,7 @@ build-backend = "setuptools.build_meta"
 requires = [
     "wheel",
     "setuptools>=80",
-    "setuptools_scm[toml]>=8.0",
+    "setuptools_scm[toml]>=9.0",
     "cmake-build-extension>=0.4",
 ]
 
@@ -42,3 +42,52 @@ local_scheme = "dirty-tag"
 
 [tool.cibuildwheel]
 build-frontend = "build"
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.tasks]
+# The pypi-dependencies section above will automatically install the package
+# via `pip install -e .` which runs CMake through setup.py
+
+# Test without rebuilding (package already installed by pixi)
+test = "pytest tests/ -v"
+
+# Force rebuild after C++ changes
+rebuild = { cmd = "pip install --force-reinstall --no-deps -e ." }
+
+# Additional tasks
+clean = "rm -rf .build build/ python/pgs_solver.egg-info/ python/pgs_solver/__pycache__/"
+benchmark = "python examples/benchmark.py --all"
+info = """
+echo '=== Build Environment ===' && \
+gcc --version | head -1 && \
+nvcc --version | grep release && \
+python --version && \
+python -c 'import pgs_solver; print(\"pgs_solver imported successfully\")'
+"""
+
+[tool.pixi.dependencies]
+pytest = "*"
+pytest-cov = "*"
+cmake = "*"
+cuda-nvcc = "*"
+jax = ">=0.7.2"
+jaxlib = { version = ">=0.7.2", build = "*cuda*" }
+dlpack = "*"
+cuda-cudart-dev = "*"
+libcusparse-dev = "*"
+python = "*"
+pip = "*"
+numpy = ">=2.3.4"
+pybind11 = "*"
+matplotlib = "*"
+# Pin GCC to version 14 (CUDA 12.8 doesn't support GCC 15+)
+cxx-compiler = "*"
+c-compiler = "*"
+gxx = "14.*"
+gcc = "14.*"
+
+[tool.pixi.pypi-dependencies]
+pgs-solver = { path = ".", editable = true }
