@@ -146,9 +146,30 @@ int main() {
         hi_vec.CopyFromHost(h_hi.data());
         x_vec.CopyFromHost(h_x0.data());
 
+        // Start timer
+        cudaEvent_t start, stop;
+        float elapsed_time;
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
+        cudaEventRecord(start);
+
         // Solve the system
         std::cout << "Starting PGS solver..." << std::endl;
         cuda_pgs::SolverStatus status = solver.Solve({&A}, &x_vec, &b_vec, &lo_vec, &hi_vec);
+
+        // Stop timer
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&elapsed_time, start, stop);
+        std::cout << "PGS solver completed in " << elapsed_time << " ms" << std::endl;
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
+
+        // Check for errors
+        if (status != cuda_pgs::SolverStatus::SUCCESS) {
+            std::cerr << "PGS solver failed with status: " << static_cast<int>(status) << std::endl;
+            return 1;
+        }
 
         // Copy solution back to host
         x_vec.CopyToHost(h_result.data());
