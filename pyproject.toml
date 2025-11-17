@@ -47,31 +47,44 @@ build-frontend = "build"
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
+[tool.pixi.activation]
+scripts = [".pixi/activation.sh"]
+
 [tool.pixi.tasks]
-# The pypi-dependencies section above will automatically install the package
-# via `pip install -e .` which runs CMake through setup.py
+# Configure and build tasks
+configure = { cmd = [
+    "cmake",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX",
+    "-DPGS_BUILD_TESTS:BOOL=OFF",
+    "-G", "Ninja",
+    "-S", ".",
+    "-B", ".build",
+], description = "Configure CMake build" }
 
-# Test without rebuilding (package already installed by pixi)
-test = "pytest tests/ -v"
+build = { cmd = "cmake --build .build --config Release", depends-on = ["configure"], description = "Build C++/CUDA library and examples" }
 
-# Force rebuild after C++ changes
-rebuild = { cmd = "pip install --force-reinstall --no-deps -e ." }
+install = { cmd = ["cmake", "--install", ".build", "--config", "Release"], depends-on = ["build"], description = "Install built libraries" }
+
+uninstall = { cmd = ["cmake", "--build", ".build", "--target", "uninstall"], description = "Uninstall libraries" }
+
+# Test tasks
+test = { cmd = "ctest --test-dir .build --build-config Release --output-on-failure", depends-on = ["build"], description = "Run C++ CUDA tests" }
+test-python = { cmd = "pytest tests/ -v", depends-on = ["install"], description = "Run Python tests" }
+test-all = { cmd = "pytest tests/ -v", depends-on = ["test"], description = "Run all tests (C++ and Python)" }
+
+# Development tasks
+rebuild = { cmd = "rm -rf .build && pixi run build", description = "Clean rebuild everything" }
+clean = { cmd = "rm -rf .build python/cupgs.egg-info python/cupgs/__pycache__ python/cupgs/lib", description = "Clean build artifacts" }
 
 # Additional tasks
-clean = "rm -rf .build build/ python/pgs_solver.egg-info/ python/pgs_solver/__pycache__/"
-benchmark = "python examples/benchmark.py --all"
-info = """
-echo '=== Build Environment ===' && \
-gcc --version | head -1 && \
-nvcc --version | grep release && \
-python --version && \
-python -c 'import pgs_solver; print(\"pgs_solver imported successfully\")'
-"""
+benchmark = { cmd = "python examples/benchmark.py --all", depends-on = ["install"], description = "Run performance benchmarks" }
 
 [tool.pixi.dependencies]
 pytest = "*"
 pytest-cov = "*"
 cmake = "*"
+ninja = "*"
 cuda-nvcc = "*"
 jax = ">=0.7.2"
 jaxlib = { version = ">=0.7.2", build = "*cuda*" }
@@ -89,5 +102,25 @@ c-compiler = "*"
 gxx = "14.*"
 gcc = "14.*"
 
-[tool.pixi.pypi-dependencies]
-pgs-solver = { path = ".", editable = true }
+[tool.pixi.system-requirements]
+cuda = "12"
+
+# ROCm environment for AMD GPUs
+[tool.pixi.feature.rocm.tasks]
+configure-rocm = { cmd = [
+    "cmake",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX",
+    "-DPGS_USE_ROCM=ON",
+    "-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc",
+    "-DPGS_BUILD_TESTS:BOOL=OFF",
+    "-G", "Ninja",
+    "-S", ".",
+    "-B", ".build",
+], description = "Configure CMake build with ROCm/HIP" }
+
+build-rocm = { cmd = "cmake --build .build --config Release", depends-on = ["configure-rocm"], description = "Build with ROCm/HIP backend" }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+rocm = { features = ["rocm"], solve-group = "default" }
