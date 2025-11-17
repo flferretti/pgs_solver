@@ -16,6 +16,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Build options
 option(PGS_BUILD_EXAMPLES "Build example applications" ON)
 option(PGS_BUILD_PYTHON "Build Python bindings" ON)
+option(PGS_BUILD_TESTS "Build C++/CUDA tests" ON)
 option(PGS_USE_ROCM "Use ROCm/HIP instead of CUDA (experimental)" OFF)
 
 # GPU backend selection
@@ -117,8 +118,27 @@ if(PGS_BUILD_PYTHON)
     pybind11_extension(_cupgs)
     pybind11_strip(_cupgs)
 
-    # Install the Python extension module
-    install(TARGETS _pgs_solver
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}
+    # Install the Python extension to python/cupgs directory
+    install(TARGETS _cupgs
+        LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/python/cupgs
+    )
+endif()
+
+# C++/CUDA Tests
+if(PGS_BUILD_TESTS)
+    enable_testing()
+
+    if(PGS_USE_ROCM)
+        set_source_files_properties(tests/test_cuda_solver.cu PROPERTIES LANGUAGE HIP)
+    endif()
+
+    add_executable(test_cuda_solver tests/test_cuda_solver.cu)
+    target_include_directories(test_cuda_solver PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(test_cuda_solver PRIVATE cuda_pgs)
+
+    add_test(NAME CUDASolverTest COMMAND test_cuda_solver)
+
+    set_target_properties(test_cuda_solver PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
     )
 endif()
