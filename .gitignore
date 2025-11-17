@@ -5,6 +5,12 @@ obj/
 CMakeFiles/
 CMakeCache.txt
 Makefile
+.build/
+
+# CMake generated files
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
 
 # Compiled CUDA files and object files
 *.o
