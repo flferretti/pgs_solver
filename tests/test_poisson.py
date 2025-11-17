@@ -1,6 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
-from pgs_solver.jax_interface import pgs_solve
+from cupgs.jax_interface import pgs_solve
 
 
 def create_poisson_system(n):

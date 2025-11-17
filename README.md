@@ -1,4 +1,4 @@
-# GPU PGS Solver
+# CuPGS - CUDA Projected Gauss-Seidel Solver
 
 A GPU-accelerated implementation of the Projected Gauss-Seidel (PGS) method for solving constrained linear systems with support for sparse matrices and multi-GPU execution.
 
@@ -41,8 +41,8 @@ See [docs/ROCM.md](docs/ROCM.md) for detailed ROCm setup instructions.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/flferretti/pgs_solver.git
-cd pgs_solver
+git clone https://github.com/flferretti/cupgs.git
+cd cupgs
 ```
 
 2. Create a build directory and run CMake:

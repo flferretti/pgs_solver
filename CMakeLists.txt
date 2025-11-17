@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(pgs_solver LANGUAGES CXX)
+project(cupgs LANGUAGES CXX)
 
 # Set policies for CMake to use FindCUDA if available
 if(POLICY CMP0146)
@@ -111,11 +111,11 @@ if(PGS_BUILD_PYTHON)
         set_source_files_properties(src/python_bindings.cu PROPERTIES LANGUAGE HIP)
     endif()
 
-    pybind11_add_module(_pgs_solver src/python_bindings.cu)
-    target_link_libraries(_pgs_solver PRIVATE cuda_pgs)
+    pybind11_add_module(_cupgs src/python_bindings.cu)
+    target_link_libraries(_cupgs PRIVATE cuda_pgs)
 
-    pybind11_extension(_pgs_solver)
-    pybind11_strip(_pgs_solver)
+    pybind11_extension(_cupgs)
+    pybind11_strip(_cupgs)
 
     # Install the Python extension module
     install(TARGETS _pgs_solver

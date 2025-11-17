@@ -176,7 +176,7 @@ static py::capsule get_pgs_solver_capsule() {
     return py::capsule(reinterpret_cast<void*>(&pgs_solver_custom_call), "xla._CUSTOM_CALL_TARGET");
 }
 
-PYBIND11_MODULE(_pgs_solver, m) {
+PYBIND11_MODULE(_cupgs, m) {
     m.doc() = "CUDA-based Projected Gauss-Seidel solver with multi-GPU support";
 
     // Add function to get JAX custom call capsule

@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import time
-from pgs_solver.jax_interface import pgs_solve, pgs_solve_jittable
+from cupgs.jax_interface import pgs_solve, pgs_solve_jittable
 import scipy.sparse as sparse
 import matplotlib.pyplot as plt
 

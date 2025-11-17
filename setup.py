@@ -2,7 +2,7 @@ from setuptools import setup
 import cmake_build_extension
 
 setup(
-    name="pgs_solver",
+    name="cupgs",
     version="0.1.0",
     author="Filippo Luca Ferretti",
     author_email="filippoluca.ferretti@outlook.com",
@@ -13,7 +13,7 @@ setup(
     ext_modules=[
         cmake_build_extension.CMakeExtension(
             name="BuildAndInstall",
-            install_prefix="pgs_solver",
+            install_prefix="cupgs",
         )
     ],
 )

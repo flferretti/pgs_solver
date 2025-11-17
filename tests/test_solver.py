@@ -1,6 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
-from pgs_solver.jax_interface import pgs_solve
+from cupgs.jax_interface import pgs_solve
 
 
 def test_diagonal_system(small_diagonal_matrix):

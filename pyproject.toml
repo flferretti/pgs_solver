@@ -1,5 +1,5 @@
 [project]
-name = "pgs-solver"
+name = "cupgs"
 description = "A CUDA PGS Solver with Multi-GPU, sparse matrices and DLPack support."
 authors = [
     { name = "Filippo Luca Ferretti", email = "filippoluca.ferretti@outlook.com" },
